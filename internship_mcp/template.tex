@@ -1,0 +1,38 @@
+\documentclass[{{FONT_SIZE}}pt,letterpaper]{extarticle}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage[expansion=true,protrusion=true]{microtype}
+
+\hypersetup{colorlinks=true,urlcolor=blue,linkcolor=black}
+
+% Section formatting — small caps with rule, matching PDF style
+\titleformat{\section}{\large\scshape}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{{{SEC_BEFORE}}}{{{SEC_AFTER}}}
+
+\setlength{\parskip}{{{PARSKIP}}}
+\pagestyle{empty}
+
+\begin{document}
+
+% Header
+\begin{center}
+  {\huge \textbf{{{NAME}}}} \\[{{HEADER_SKIP}}]
+  {{PHONE}} $|$ {{EMAIL}} $|$ {{WEBSITE}} $|$ {{GITHUB}} $|$ {{LINKEDIN}}
+\end{center}
+
+\section{Education}
+{{EDUCATION}}
+
+\section{Experience}
+{{EXPERIENCE_BULLETS}}
+
+\section{Projects}
+{{PROJECTS}}
+
+\section{Technical Skills}
+{{SKILLS}}
+
+\end{document}
