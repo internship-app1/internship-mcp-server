@@ -19,7 +19,29 @@ from . import client, compile_local, config, packet, profile_store, resume_local
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 logger = logging.getLogger("internship-mcp")
 
-mcp = FastMCP("internship")
+mcp = FastMCP(
+    "internship",
+    instructions=(
+        "Internship Apply Agent. YOU (the host agent) supply all reasoning; these "
+        "tools are deterministic.\n\n"
+        "FIRST INTERACTION RULE: before doing ANY job search or application work — "
+        "and ideally as soon as the user engages you about internships — call "
+        "profile_setup. If missing_required or optional_questions is non-empty, run "
+        "the one-time setup interview: collect the required fields, then offer the "
+        "optional standard application questions (work authorization, visa, EEO "
+        "demographics, logistics), making clear each optional one can be skipped "
+        "('prefer not to answer' keeps 'Decline to self-identify'). Save with "
+        "profile_set including _meta.setup_interview_done=true. Never guess these "
+        "values; never re-ask once done; the encrypted local profile is the source "
+        "of truth until the user asks to change it.\n\n"
+        "Core flow: profile_setup -> resume_parse (you extract skills) -> jobs_list "
+        "-> jobs_prefilter -> you rank -> job_get -> you rewrite resume JSON (see "
+        "resume://tailoring-guide) -> resume_compile (fix diagnostics.widows, "
+        "recompile) -> packet_build -> prefill via the Playwright MCP -> STOP for "
+        "the user to review and submit -> application_record. Never auto-answer "
+        "subjective questions; ask the user and answer_save their words."
+    ),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +315,38 @@ def autosubmit_plan(job_hash: str, packet_data: Dict, dry_run: bool = True) -> D
         ),
         "steps": steps,
     }
+
+
+# ---------------------------------------------------------------------------
+# Prompts (user-invocable entry points — surfaced as commands by MCP hosts)
+# ---------------------------------------------------------------------------
+
+@mcp.prompt()
+def get_started() -> str:
+    """First-run onboarding: set up the applicant profile via the one-time interview."""
+    return (
+        "I want to set up my internship apply agent. Call profile_setup, then "
+        "interview me for everything it reports missing — the required fields and "
+        "the optional standard application questions (work authorization, visa, "
+        "EEO demographics, logistics). Tell me clearly which questions are optional "
+        "and let me skip any of them. Save my answers with profile_set, mark the "
+        "interview done, and confirm what my profile now covers."
+    )
+
+
+@mcp.prompt()
+def apply_to_internships(resume_path: str) -> str:
+    """End-to-end assisted apply run: parse resume, find + rank jobs, tailor, prefill."""
+    return (
+        f"Run my internship application flow. 1) profile_setup — if anything is "
+        f"missing, interview me first. 2) Parse my resume at {resume_path} and "
+        f"extract my skills yourself. 3) Find postings from the last 3 days, "
+        f"prefilter them, and rank your top 5 with reasoning from the full job "
+        f"descriptions. 4) For my pick: tailor my resume truthfully, compile it, "
+        f"and fix any widows the compiler reports. 5) Build the application packet, "
+        f"ask me for anything subjective, prefill the form via Playwright, then "
+        f"STOP so I can review and submit it myself."
+    )
 
 
 # ---------------------------------------------------------------------------
