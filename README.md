@@ -22,9 +22,49 @@ Playwright MCP — while **you** review and hit submit.
 
 1. Sign in at the Internship Matcher web app and generate an API key on the
    `/developer` page.
-2. Add the server to your MCP client config:
+2. Pick a tier:
 
-**Docker (recommended — local compile, OCR, fully reproducible)**
+**Just exploring? Hosted endpoint (zero install — job search & fit scoring only)**
+
+Add a custom connector / remote MCP server pointing at:
+
+```
+https://internshipmatcher.com/mcp?key=im_live_...
+```
+
+(Clients that support headers can send `X-API-Key` instead of the `?key=` param.)
+The hosted tier covers discovery; applying needs the full agent below.
+
+**Full apply agent — uvx (recommended; no Docker, no clone)**
+
+```json
+{
+  "mcpServers": {
+    "internship": {
+      "command": "uvx",
+      "args": ["internship-mcp"],
+      "env": { "INTERNSHIP_API_KEY": "im_live_..." }
+    },
+    "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] }
+  }
+}
+```
+
+Resume compiling: during onboarding the agent asks you to choose —
+**install pdflatex locally** for unlimited compiles (recommended):
+
+```bash
+# macOS
+brew install --cask basictex && sudo tlmgr update --self && sudo tlmgr install enumitem titlesec parskip microtype
+# Debian/Ubuntu
+sudo apt install texlive-latex-extra
+# Windows: install MiKTeX from https://miktex.org
+```
+
+…or skip the install and compile on our servers (15 resumes/week). `COMPILE=auto`
+(the default) picks local automatically whenever pdflatex is present.
+
+**Docker (advanced — pinned TeX Live + OCR baked in, fully reproducible)**
 
 ```json
 {
@@ -36,21 +76,6 @@ Playwright MCP — while **you** review and hit submit.
                "-e", "INTERNSHIP_API_KEY",
                "ghcr.io/internship-app1/internship-mcp-server:latest"],
       "env": { "INTERNSHIP_API_KEY": "im_live_..." }
-    },
-    "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] }
-  }
-}
-```
-
-**uvx (quick start — no system deps, compile falls back to the backend)**
-
-```json
-{
-  "mcpServers": {
-    "internship": {
-      "command": "uvx",
-      "args": ["internship-mcp"],
-      "env": { "INTERNSHIP_API_KEY": "im_live_...", "COMPILE": "remote" }
     },
     "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] }
   }

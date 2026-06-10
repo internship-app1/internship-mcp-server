@@ -7,4 +7,4 @@ Cardinal rules (see CLAUDE.md):
 4. Agent-agnostic: stdio transport, no Claude-Code-only features.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

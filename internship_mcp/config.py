@@ -54,6 +54,28 @@ def compile_mode() -> str:
     return "local" if pdflatex_available() else "remote"
 
 
+REMOTE_COMPILE_QUOTA = "15 resume compiles per week"
+
+TEX_INSTALL_COMMANDS = {
+    "macos": "brew install --cask basictex && sudo tlmgr update --self && sudo tlmgr install enumitem titlesec parskip microtype",
+    "debian_ubuntu": "sudo apt install texlive-latex-extra",
+    "windows": "Install MiKTeX from https://miktex.org (it auto-installs needed packages)",
+}
+
+
+def compile_setup_info() -> dict:
+    """Everything the agent needs to run the compile-choice onboarding step:
+    is pdflatex installed, which mode COMPILE resolves to, the remote quota,
+    and per-OS install commands for going local/unlimited."""
+    installed = pdflatex_available()
+    return {
+        "pdflatex_installed": installed,
+        "mode": compile_mode(),
+        "remote_quota": REMOTE_COMPILE_QUOTA,
+        "install_commands": TEX_INSTALL_COMMANDS,
+    }
+
+
 def max_auto_submits() -> int:
     try:
         return int(os.getenv("MAX_AUTO_SUBMITS", "10"))

@@ -26,14 +26,20 @@ mcp = FastMCP(
         "tools are deterministic.\n\n"
         "FIRST INTERACTION RULE: before doing ANY job search or application work — "
         "and ideally as soon as the user engages you about internships — call "
-        "profile_setup. If missing_required or optional_questions is non-empty, run "
-        "the one-time setup interview: collect the required fields, then offer the "
-        "optional standard application questions (work authorization, visa, EEO "
-        "demographics, logistics), making clear each optional one can be skipped "
-        "('prefer not to answer' keeps 'Decline to self-identify'). Save with "
-        "profile_set including _meta.setup_interview_done=true. Never guess these "
-        "values; never re-ask once done; the encrypted local profile is the source "
-        "of truth until the user asks to change it.\n\n"
+        "profile_setup. Run the one-time setup in this order:\n"
+        "1) COMPILE CHOICE (from compile_setup in the response): if pdflatex is not "
+        "installed, ask the user to choose — install pdflatex locally for UNLIMITED "
+        "resume compiles (recommended; give them the install command for their OS "
+        "and re-check by calling profile_setup again), or use the remote service "
+        "(limited to 15 compiles/week). Record their choice via profile_set as "
+        "_meta.compile_choice='local'|'remote'.\n"
+        "2) PROFILE INTERVIEW: collect missing_required, then offer the optional "
+        "standard application questions (work authorization, visa, EEO demographics, "
+        "logistics), making clear each optional one can be skipped ('prefer not to "
+        "answer' keeps 'Decline to self-identify'). Save with profile_set including "
+        "_meta.setup_interview_done=true. Never guess these values; never re-ask "
+        "once done; the encrypted local profile is the source of truth until the "
+        "user asks to change it.\n\n"
         "Core flow: profile_setup -> resume_parse (you extract skills) -> jobs_list "
         "-> jobs_prefilter -> you rank -> job_get -> you rewrite resume JSON (see "
         "resume://tailoring-guide) -> resume_compile (fix diagnostics.widows, "
@@ -56,19 +62,30 @@ def profile_setup() -> Dict:
     work authorization, visa status, and the EEO/demographic set (gender,
     race/ethnicity, Hispanic/Latino, veteran status, disability).
 
-    Run ONE setup interview: ask the missing_required fields, then offer the
-    optional_questions in a single batch, telling the user each optional one
-    can be skipped ("prefer not to answer" keeps the default of 'Decline to
-    self-identify' on applications). NEVER guess or infer these values. Save
-    everything with profile_set, including {"_meta": {"setup_interview_done":
-    true}} so the user is never re-asked — the encrypted profile is then the
-    single source of truth for all future applications until the user asks to
-    change it (profile_set works any time). Next: resume_parse."""
+    Run ONE setup, in this order:
+    1) COMPILE CHOICE — from compile_setup: if pdflatex_installed is false and
+       _meta.compile_choice is unset, ask the user to pick: install pdflatex
+       locally (UNLIMITED compiles — give them install_commands for their OS,
+       then call profile_setup again to confirm pdflatex_installed flipped) or
+       use the remote service (remote_quota limited). Record via profile_set
+       as {"_meta": {"compile_choice": "local"|"remote"}}.
+    2) INTERVIEW — ask the missing_required fields, then offer the
+       optional_questions in a single batch, telling the user each optional one
+       can be skipped ("prefer not to answer" keeps the default of 'Decline to
+       self-identify' on applications). NEVER guess or infer these values. Save
+       everything with profile_set, including {"_meta": {"setup_interview_done":
+       true}} so the user is never re-asked — the encrypted profile is then the
+       single source of truth for all future applications until the user asks
+       to change it (profile_set works any time). Next: resume_parse."""
     profile = profile_store.load_profile()
     return {
         "profile": profile,
         "missing_required": profile_store.missing_required(profile),
         "optional_questions": profile_store.optional_interview_questions(profile),
+        "compile_setup": {
+            **config.compile_setup_info(),
+            "compile_choice": profile.get("_meta", {}).get("compile_choice"),
+        },
         "compile_mode": config.compile_mode(),
     }
 
