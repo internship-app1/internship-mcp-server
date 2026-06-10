@@ -127,10 +127,10 @@ application_record(status="prefilled"). Dedup via applications_list/application_
 - Docker (primary): bakes pinned TeX Live + tesseract + fonts -> COMPILE=local OOTB; mount a
   named volume at INTERNSHIP_HOME. Reproducible, cross-agent default.
 - uvx (quick-start): uvx internship-mcp; no system deps (pdfplumber only, OCR off,
-  COMPILE=remote). Playwright MCP is a SEPARATE server the host orchestrates — not bundled.
+  COMPILE=auto). Playwright MCP is a SEPARATE server the host orchestrates — not bundled.
 
 ## Dev commands
-INTERNSHIP_API_KEY=im_live_... COMPILE=remote uvx --from . internship-mcp
+INTERNSHIP_API_KEY=im_live_... uvx --from . internship-mcp
 docker build -t internship-mcp . && docker run -i --rm -e INTERNSHIP_API_KEY -v internship-home:/root/.internship-agent internship-mcp
 npx @modelcontextprotocol/inspector uvx --from . internship-mcp
 pytest ; pytest -m parity
@@ -163,11 +163,21 @@ that drove it. Cross-repo decisions go in the workspace CLAUDE.md instead.
 - History is one-commit-per-module by design; keep that granularity for future features.
 
 ### Remote-compile weekly quota (backend PR #27, Jun 2026)
-- The backend caps remote compiles at **15/week per account** on top of 60/day +
-  3-concurrent. 429s from /resume/compile now come in two flavors: capacity ("retry
+- The backend caps remote compiles at **15/week per account** plus
+  3-concurrent admission. 429s from /resume/compile now come in two flavors: capacity ("retry
   shortly") and weekly quota ("resets <date>; compile locally for unlimited") — surface
   the detail string to the agent verbatim; the quota one should steer users to
   COMPILE=local, not to retries. Cache-hit compiles are free server-side.
+
+### Distribution rethink: hosted discovery + uvx full agent (Jun 2026)
+- Internship-App now has a hosted `/mcp` discovery tier: only `jobs_list`, `job_get`,
+  `jobs_prefilter`, and a resource pointing users here. It is the zero-install funnel,
+  not the apply agent. Do not add vault/profile/resume/packet/compile tools to hosted.
+- This repo remains the full apply agent. `uvx internship-mcp` is the headline install
+  path; Docker is advanced/reproducible only. Snippets should omit `COMPILE` so
+  `COMPILE=auto` chooses local pdflatex when present and remote fallback otherwise.
+- Onboarding should ask the compile choice first: install TeX locally for unlimited
+  compiles, or use the remote fallback capped at 15/week. PII vault remains local.
 
 ### Setup interview covers optional EEO/work-auth questions (Jun 2026)
 - Product decision: profile_setup now also returns optional_questions (work auth,
