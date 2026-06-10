@@ -152,3 +152,25 @@ pytest ; pytest -m parity
 ## Self-Learning
 Append MCP-internal decisions here, newest-last: branch/PR, what changed, and the constraint
 that drove it. Cross-repo decisions go in the workspace CLAUDE.md instead.
+
+### Initial publish (Jun 2026)
+- Published at github.com/internship-app1/**internship-mcp-server** — repo and GHCR image
+  are named `internship-mcp-server`; the PyPI package / Python dir stays `internship-mcp`.
+  Keep Docker snippets pointing at `ghcr.io/internship-app1/internship-mcp-server`.
+- History is one-commit-per-module by design; keep that granularity for future features.
+
+### Remote-compile weekly quota (backend PR #27, Jun 2026)
+- The backend caps remote compiles at **15/week per account** on top of 60/day +
+  3-concurrent. 429s from /resume/compile now come in two flavors: capacity ("retry
+  shortly") and weekly quota ("resets <date>; compile locally for unlimited") — surface
+  the detail string to the agent verbatim; the quota one should steer users to
+  COMPILE=local, not to retries. Cache-hit compiles are free server-side.
+
+### Streamable-HTTP dev harness (Jun 2026)
+- For remote testing (claude.ai custom connectors, Inspector over a tunnel) the same
+  FastMCP app can run `mcp.run(transport="streamable-http")` with
+  `settings.stateless_http=True`. DEV ONLY — the product transport is stdio (cardinal
+  rule 4). Two gotchas: the SDK's DNS-rebinding protection rejects foreign Host headers
+  (rewrite Host to 127.0.0.1:<port> at the proxy/tunnel), and a public endpoint shares
+  ONE INTERNSHIP_API_KEY + vault with every caller — use a scratch INTERNSHIP_HOME and a
+  disposable key, never a real profile.
