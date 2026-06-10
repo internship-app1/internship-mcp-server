@@ -98,3 +98,36 @@ class TestSetFields:
         p = profile_store.set_fields(p, {"personal": {"full_name": "Jane"}})
         assert p["personal"]["email"] == "jane@example.com"
         assert p["personal"]["full_name"] == "Jane"
+
+
+class TestSetupInterview:
+    def test_fresh_profile_offers_optional_questions(self):
+        p = profile_store.default_profile()
+        qs = profile_store.optional_interview_questions(p)
+        joined = " ".join(qs).lower()
+        for topic in ("authorized to work", "gender", "hispanic", "race", "veteran", "disability"):
+            assert topic in joined
+
+    def test_answered_questions_drop_out(self):
+        p = profile_store.default_profile()
+        p["work_authorization"]["work_authorized_in_us"] = True
+        p["demographics_eeo"]["veteran_status"] = "not_a_veteran"
+        qs = " ".join(profile_store.optional_interview_questions(p)).lower()
+        assert "authorized to work" not in qs
+        assert "veteran" not in qs
+        assert "gender" in qs  # still at default → still offered
+
+    def test_interview_done_flag_silences_everything(self):
+        p = profile_store.default_profile()
+        p = profile_store.set_fields(p, {"_meta": {"setup_interview_done": True}})
+        assert profile_store.optional_interview_questions(p) == []
+
+    def test_declining_still_counts_as_done_via_flag(self):
+        """User skips every optional question → defaults stay 'decline', and the
+        done flag (not invented answers) is what stops re-asking."""
+        p = profile_store.default_profile()
+        p = profile_store.set_fields(p, {"_meta": {"setup_interview_done": True}})
+        profile_store.save_profile(p)
+        loaded = profile_store.load_profile()
+        assert loaded["demographics_eeo"]["gender"] == "decline"
+        assert profile_store.optional_interview_questions(loaded) == []

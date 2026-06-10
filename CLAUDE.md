@@ -38,7 +38,7 @@ pyproject.toml       # PyPI package "internship-mcp"; entry -> python -m interns
 Registered in __main__.py via FastMCP. Plane = where the work happens.
 | Tool | Inputs | Returns | Side effects | Plane |
 |---|---|---|---|---|
-| profile_setup | — | {profile, missing_required[]} | reads profile.enc | local |
+| profile_setup | — | {profile, missing_required[], optional_questions[]} | reads profile.enc | local |
 | profile_get | — | full profile (decrypted in-process) | — | local |
 | profile_set | fields | updated profile | writes profile.enc (atomic) | local |
 | answer_save | question, answer, tags? | {ok} | appends to answer_bank | local |
@@ -71,7 +71,10 @@ application_record(status="prefilled"). Dedup via applications_list/application_
 ## Local stores
 ### profile_store.py
 - File INTERNSHIP_HOME/profile.enc, Fernet-encrypted, atomic write, chmod 600.
-- Schema: PRD 8.1. EEO fields default "decline" and are NEVER required.
+- Schema: PRD 8.1. EEO fields default "decline" and are NEVER required. The setup
+  interview OFFERS them once (optional_interview_questions; gated by
+  _meta.setup_interview_done) so packet_build can fill real values — skipping keeps
+  "decline"; the agent must never infer them.
   _meta.schema_version gates migrations.
 - Key resolution: OS keyring (service "internship-agent") -> INTERNSHIP_PROFILE_KEY env ->
   first-run passphrase (agent prompts user; cache derived key in keyring). Never log key/PII.
@@ -165,6 +168,14 @@ that drove it. Cross-repo decisions go in the workspace CLAUDE.md instead.
   shortly") and weekly quota ("resets <date>; compile locally for unlimited") — surface
   the detail string to the agent verbatim; the quota one should steer users to
   COMPILE=local, not to retries. Cache-hit compiles are free server-side.
+
+### Setup interview covers optional EEO/work-auth questions (Jun 2026)
+- Product decision: profile_setup now also returns optional_questions (work auth,
+  visa, gender, race/ethnicity, Hispanic/Latino, veteran, disability, logistics) so
+  the FIRST-RUN interview collects real values for application autofill. Constraints
+  kept: every question optional (skip -> 'decline'), asked exactly once
+  (_meta.setup_interview_done flag — set it via profile_set when the interview ends),
+  changeable any time via profile_set, never inferred, never sent to our backend.
 
 ### Streamable-HTTP dev harness (Jun 2026)
 - For remote testing (claude.ai custom connectors, Inspector over a tunnel) the same

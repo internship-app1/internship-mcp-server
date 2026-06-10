@@ -28,15 +28,25 @@ mcp = FastMCP("internship")
 
 @mcp.tool()
 def profile_setup() -> Dict:
-    """START HERE on first run. Returns the applicant profile plus a
-    missing_required list. If anything is missing, INTERVIEW THE USER for those
-    fields (one short question batch), then call profile_set with their answers.
-    EEO/demographic fields default to "decline" and are never required — only
-    ask about them if the user volunteers. Next: resume_parse."""
+    """START HERE on first run. Returns the applicant profile, a
+    missing_required list, and (until the one-time setup interview is done) an
+    optional_questions list covering the standard application questions —
+    work authorization, visa status, and the EEO/demographic set (gender,
+    race/ethnicity, Hispanic/Latino, veteran status, disability).
+
+    Run ONE setup interview: ask the missing_required fields, then offer the
+    optional_questions in a single batch, telling the user each optional one
+    can be skipped ("prefer not to answer" keeps the default of 'Decline to
+    self-identify' on applications). NEVER guess or infer these values. Save
+    everything with profile_set, including {"_meta": {"setup_interview_done":
+    true}} so the user is never re-asked — the encrypted profile is then the
+    single source of truth for all future applications until the user asks to
+    change it (profile_set works any time). Next: resume_parse."""
     profile = profile_store.load_profile()
     return {
         "profile": profile,
         "missing_required": profile_store.missing_required(profile),
+        "optional_questions": profile_store.optional_interview_questions(profile),
         "compile_mode": config.compile_mode(),
     }
 

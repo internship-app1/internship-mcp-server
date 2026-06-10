@@ -186,6 +186,40 @@ def missing_required(profile: Dict) -> List[str]:
     return missing
 
 
+# Standard application questions asked ONCE during the setup interview.
+# Every one is OPTIONAL — "prefer not to answer" keeps the "decline" default.
+# Asked so packet_build can fill real values; never required, never inferred.
+OPTIONAL_INTERVIEW_QUESTIONS = [
+    ("work_authorization.work_authorized_in_us", "Are you legally authorized to work in the US?"),
+    ("work_authorization.visa_status", "Current visa status, if any (e.g. F-1, H-1B)?"),
+    ("demographics_eeo.gender", "Gender (optional — used only to fill EEO sections; you can decline)"),
+    ("demographics_eeo.hispanic_or_latino", "Are you Hispanic or Latino? (optional EEO question; you can decline)"),
+    ("demographics_eeo.race_ethnicity", "Race/ethnicity (optional EEO question; you can decline)"),
+    ("demographics_eeo.veteran_status", "Are you a protected veteran? (optional EEO question; you can decline)"),
+    ("demographics_eeo.disability_status", "Do you have a disability? (optional EEO question; you can decline)"),
+    ("logistics.desired_locations", "Preferred work locations?"),
+    ("logistics.work_mode", "Preferred work mode (onsite / hybrid / remote)?"),
+    ("logistics.salary_expectation", "Salary/stipend expectation, if you want one pre-filled?"),
+]
+
+
+def optional_interview_questions(profile: Dict) -> list:
+    """Setup-interview questions not yet answered (still at their defaults).
+
+    Returned by profile_setup ONLY until the interview is marked done
+    (_meta.setup_interview_done), so users are asked exactly once.
+    """
+    if profile.get("_meta", {}).get("setup_interview_done"):
+        return []
+    pending = []
+    for path, question in OPTIONAL_INTERVIEW_QUESTIONS:
+        value = _get_path(profile, path)
+        unanswered = value in (None, "", [], "decline") or value == ["decline"]
+        if unanswered:
+            pending.append(question)
+    return pending
+
+
 def set_fields(profile: Dict, fields: Dict) -> Dict:
     """Deep-merge a partial update into the profile (dicts merge, scalars replace)."""
     def merge(dst: Dict, src: Dict):
