@@ -34,7 +34,7 @@ Playwright MCP — while **you** review and hit submit.
       "args": ["run", "-i", "--rm",
                "-v", "internship-home:/root/.internship-agent",
                "-e", "INTERNSHIP_API_KEY",
-               "ghcr.io/internship-app1/internship-mcp:latest"],
+               "ghcr.io/internship-app1/internship-mcp-server:latest"],
       "env": { "INTERNSHIP_API_KEY": "im_live_..." }
     },
     "playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] }
