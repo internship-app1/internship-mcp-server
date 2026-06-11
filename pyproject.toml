@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "internship-mcp"
-version = "0.2.1"
+version = "0.2.2"
 description = "Vendor-neutral MCP server for the Internship Apply Agent — deterministic tools, all AI reasoning done by the calling agent, all PII kept local."
 readme = "README.md"
 requires-python = ">=3.10"
