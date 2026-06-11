@@ -82,11 +82,16 @@ def job_get(job_hash: str) -> JobDetail:
 
 
 def jobs_prefilter(
-    resume_profile: Dict, filters: Optional[Dict] = None, target_count: int = 40
+    resume_profile: Dict,
+    filters: Optional[Dict] = None,
+    target_count: int = 40,
+    exclude_hashes: Optional[list] = None,
 ) -> PrefilterResponse:
     body = {"resume_profile": resume_profile, "target_count": target_count}
     if filters:
         body["filters"] = filters
+    if exclude_hashes:
+        body["exclude_hashes"] = exclude_hashes
     resp = _request("POST", "/jobs/prefilter", json=body)
     return PrefilterResponse.model_validate(resp.json())
 
