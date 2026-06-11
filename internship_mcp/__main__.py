@@ -201,6 +201,19 @@ def jobs_prefilter(
       (e.g. "Machine Learning"), NOT your resume skills. If you see "Machine
       Learning" there, it means one of your skills (e.g. RAG or LLM) matched it
       via synonym grouping — your specialized AI skills ARE counting.
+    METADATA_SCORE NOTE — metadata_score will cluster at 82 or 74 for most
+      student candidates. This is EXPECTED, not a bug:
+      • 82 = student matching an intern-level role + sparse location/industry/
+        citizenship metadata in the DB (the neutral baseline)
+      • 74 = same candidate, but job is tagged as junior-level (not intern)
+      Do NOT treat a run of 82s and 74s as broken — it means metadata is giving
+      no strong signal either way. The real differentiation comes from
+      skill_score and keyword_score (the 70% component of combined_score). Sort
+      on combined_score; do not try to rank within the metadata_score clusters.
+      Metadata variance (e.g. 90+ or <60) only appears when: location genuinely
+      matches the job's city, citizenship is filled from the encrypted profile
+      (auto-derived when profile_setup is complete), or a job has unusual
+      experience-level requirements.
     Combined_score is a prefilter — re-rank the shortlist yourself using job_get."""
     # Auto-derive citizenship from the local encrypted profile so the agent
     # doesn't have to call profile_get() and manually derive the mapping.
