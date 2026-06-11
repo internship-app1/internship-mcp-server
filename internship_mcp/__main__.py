@@ -181,14 +181,54 @@ def jobs_prefilter(
     resume_profile: Dict,
     filters: Optional[Dict] = None,
     target_count: int = 40,
+    exclude_hashes: Optional[List[str]] = None,
 ) -> Dict:
-    """Deterministic keyword + metadata scoring of jobs against a small
-    PII-free resume_profile (skills, experience_level, years_of_experience,
-    location, willing_to_relocate, remote_ok). Returns scored candidates.
-    Quick mode: trust combined_score. Think deeper: job_get the full JDs for
-    your shortlist and re-rank them YOURSELF. The scoring here is mechanical —
-    your judgment is the real ranker."""
-    return client.jobs_prefilter(resume_profile, filters, target_count).model_dump()
+    """Deterministic keyword + metadata scoring. Build resume_profile from what
+    you know about the candidate:
+      skills: list extracted from resume text
+      experience_level: student | entry_level | experienced
+      years_of_experience: int
+      location: city/state string (e.g. "San Francisco, CA")
+      willing_to_relocate, remote_ok: booleans
+      citizenship: auto-derived from the local profile — you don't need to pass
+        this; the tool reads work_authorization from the encrypted profile and
+        fills it in automatically. Override only if you have a better value.
+      industry_preferences: list of relevant industries, e.g. ["software", "ai",
+        "machine learning"] for an AI/ML engineer. Omit if unsure.
+    exclude_hashes: list of job_hashes to skip (already applied). Pass hashes
+      from jobs_not_applied() or applications_list() to suppress duplicates.
+    Response note: skill_matches lists the JOB's skill names that were matched
+      (e.g. "Machine Learning"), NOT your resume skills. If you see "Machine
+      Learning" there, it means one of your skills (e.g. RAG or LLM) matched it
+      via synonym grouping — your specialized AI skills ARE counting.
+    Combined_score is a prefilter — re-rank the shortlist yourself using job_get."""
+    # Auto-derive citizenship from the local encrypted profile so the agent
+    # doesn't have to call profile_get() and manually derive the mapping.
+    if "citizenship" not in resume_profile or resume_profile.get("citizenship") is None:
+        try:
+            profile = profile_store.load_profile()
+            wa = profile.get("work_authorization", {})
+            if wa.get("us_citizen"):
+                citizenship = "us_citizen"
+            elif wa.get("work_authorized_in_us") and not wa.get("us_citizen"):
+                citizenship = "permanent_resident"
+            elif wa.get("requires_sponsorship_now_or_future"):
+                citizenship = "international"
+            else:
+                citizenship = None
+            if citizenship:
+                resume_profile = {**resume_profile, "citizenship": citizenship}
+        except Exception:
+            pass  # profile not set up yet — proceed without citizenship
+    if not resume_profile.get("industry_preferences"):
+        ai_terms = {"ai", "ml", "machine learning", "llm", "rag", "nlp",
+                    "deep learning", "neural", "generative", "langchain", "vector"}
+        skills_lower = {s.lower() for s in (resume_profile.get("skills") or [])}
+        inferred = ["software", "tech"]
+        if skills_lower & ai_terms or any(any(t in s for t in ai_terms) for s in skills_lower):
+            inferred.append("ai")
+        resume_profile = {**resume_profile, "industry_preferences": inferred}
+    return client.jobs_prefilter(resume_profile, filters, target_count, exclude_hashes).model_dump()
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +321,18 @@ def applications_list(status: Optional[str] = None) -> List[Dict]:
     """List tracked applications (optionally by status). Check this before
     building a packet to avoid duplicate applications."""
     return tracker.list_applications(status)
+
+
+@mcp.tool()
+def jobs_not_applied(job_hashes: List[str]) -> Dict:
+    """Filter a list of job_hashes to only those not yet tracked locally.
+    Pass the job_hashes from jobs_prefilter results. Returns
+    {unapplied: [...], already_applied: [...]} so you know what to skip.
+    Call this immediately after jobs_prefilter before doing any deeper work."""
+    unapplied, already_applied = [], []
+    for h in job_hashes:
+        (already_applied if tracker.get_status(h) else unapplied).append(h)
+    return {"unapplied": unapplied, "already_applied": already_applied}
 
 
 @mcp.tool()
