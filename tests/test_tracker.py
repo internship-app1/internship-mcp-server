@@ -32,3 +32,10 @@ class TestTracker:
         tracker.record("h2", "submitted")
         assert {r["job_hash"] for r in tracker.list_applications("submitted")} == {"h2"}
         assert len(tracker.list_applications()) == 2
+
+    def test_jobs_not_applied_splits_correctly(self):
+        tracker.record("applied-hash", "submitted", company="Acme")
+        from internship_mcp.__main__ import jobs_not_applied
+        result = jobs_not_applied(["applied-hash", "new-hash-1", "new-hash-2"])
+        assert result["already_applied"] == ["applied-hash"]
+        assert set(result["unapplied"]) == {"new-hash-1", "new-hash-2"}
