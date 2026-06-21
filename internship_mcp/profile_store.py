@@ -20,7 +20,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from . import config
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 _KEYRING_SERVICE = "internship-agent"
 _KEYRING_USER = "profile-key"
 
@@ -63,6 +63,9 @@ def default_profile() -> Dict:
         "logistics": {
             "willing_to_relocate": None, "desired_locations": [], "work_mode": [],
             "earliest_start_date": "", "salary_expectation": "", "how_did_you_hear": "",
+        },
+        "job_preferences": {
+            "target_categories": [],  # empty = all categories (no narrowing)
         },
         "education": [],
         "answer_bank": [],
@@ -200,6 +203,13 @@ OPTIONAL_INTERVIEW_QUESTIONS = [
     ("logistics.desired_locations", "Preferred work locations?"),
     ("logistics.work_mode", "Preferred work mode (onsite / hybrid / remote)?"),
     ("logistics.salary_expectation", "Salary/stipend expectation, if you want one pre-filled?"),
+    (
+        "job_preferences.target_categories",
+        "Which job categories would you like to focus on? (optional — skip to search all)\n"
+        "Options: software, data_ml, hardware, security, product, design, business, "
+        "healthcare, legal, policy, education, other\n"
+        "Example: ['software', 'data_ml'] — or leave blank to see every category.",
+    ),
 ]
 
 
