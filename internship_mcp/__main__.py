@@ -195,6 +195,13 @@ def jobs_prefilter(
         fills it in automatically. Override only if you have a better value.
       industry_preferences: list of relevant industries, e.g. ["software", "ai",
         "machine learning"] for an AI/ML engineer. Omit if unsure.
+    filters.categories: auto-injected from job_preferences.target_categories in the
+      local profile — only jobs in those categories are scored, cutting the candidate
+      pool substantially. Override by passing filters={"categories": ["software"]}
+      explicitly (explicit value always wins). Change the stored preference via
+      profile_set({"job_preferences": {"target_categories": ["software", "data_ml"]}}).
+      Valid values: software, data_ml, hardware, security, product, design, business,
+      healthcare, legal, policy, education, other. Empty list (default) = all categories.
     exclude_hashes: list of job_hashes to skip (already applied). Pass hashes
       from jobs_not_applied() or applications_list() to suppress duplicates.
     Response note: skill_matches lists the JOB's skill names that were matched
@@ -215,12 +222,15 @@ def jobs_prefilter(
       (auto-derived when profile_setup is complete), or a job has unusual
       experience-level requirements.
     Combined_score is a prefilter — re-rank the shortlist yourself using job_get."""
-    # Auto-derive citizenship from the local encrypted profile so the agent
-    # doesn't have to call profile_get() and manually derive the mapping.
-    if "citizenship" not in resume_profile or resume_profile.get("citizenship") is None:
-        try:
-            profile = profile_store.load_profile()
-            wa = profile.get("work_authorization", {})
+    # Auto-derive profile fields (citizenship + target_categories) so the agent
+    # doesn't have to call profile_get() and pass them manually.
+    # Explicit values in resume_profile / filters always win.
+    try:
+        _profile = profile_store.load_profile()
+
+        # 1) Citizenship — derive from work_authorization
+        if "citizenship" not in resume_profile or resume_profile.get("citizenship") is None:
+            wa = _profile.get("work_authorization", {})
             if wa.get("us_citizen"):
                 citizenship = "us_citizen"
             elif wa.get("work_authorized_in_us") and not wa.get("us_citizen"):
@@ -231,8 +241,16 @@ def jobs_prefilter(
                 citizenship = None
             if citizenship:
                 resume_profile = {**resume_profile, "citizenship": citizenship}
-        except Exception:
-            pass  # profile not set up yet — proceed without citizenship
+
+        # 2) Target categories — inject from job_preferences if not explicitly overridden
+        filters = filters or {}
+        if "categories" not in filters:
+            cats = _profile.get("job_preferences", {}).get("target_categories") or []
+            if cats:  # non-empty only; [] means "all jobs" which is the default behavior
+                filters = {**filters, "categories": cats}
+
+    except Exception:
+        filters = filters or {}  # ensure filters is always a dict even on profile failure
     if not resume_profile.get("industry_preferences"):
         ai_terms = {"ai", "ml", "machine learning", "llm", "rag", "nlp",
                     "deep learning", "neural", "generative", "langchain", "vector"}
